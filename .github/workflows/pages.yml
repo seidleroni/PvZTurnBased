@@ -43,6 +43,7 @@ jobs:
         run: |
           mkdir -p dist
           cp -R src/garden_guard/static/. dist/
+          printf '{"version":"%s","commit":"%s","builtAt":"%s"}\n' "${GITHUB_SHA::7}" "$GITHUB_SHA" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > dist/version.json
           touch dist/.nojekyll
 
       - name: Upload Pages artifact

@@ -203,6 +203,7 @@ const starBadge = document.querySelector("#starBadge");
 const gateBadge = document.querySelector("#gateBadge");
 const goalBadge = document.querySelector("#goalBadge");
 const levelText = document.querySelector("#levelText");
+const versionText = document.querySelector("#versionText");
 const nextTurnBtn = document.querySelector("#nextTurnBtn");
 const soundBtn = document.querySelector("#soundBtn");
 const shovelBtn = document.querySelector("#shovelBtn");
@@ -250,6 +251,19 @@ function track(type, payload = {}) {
   })
     .then(() => refreshTelemetry())
     .catch(() => {});
+}
+
+function loadVersion() {
+  fetch("version.json", { cache: "no-store" })
+    .then((response) => response.json())
+    .then((info) => {
+      const label = info.version || (info.commit ? info.commit.slice(0, 7) : "local-dev");
+      versionText.textContent = `v ${label}`;
+      versionText.title = `Commit ${info.commit || "local"} built ${info.builtAt || "local"}`;
+    })
+    .catch(() => {
+      versionText.textContent = "v local-dev";
+    });
 }
 
 function refreshTelemetry() {
@@ -1061,5 +1075,6 @@ hintBtn.addEventListener("click", hint);
 restartBtn.addEventListener("click", restart);
 
 track("session_start", { userAgent: navigator.userAgent });
+loadVersion();
 beginLevel(0);
 refreshTelemetry();
