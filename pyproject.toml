@@ -1,0 +1,9 @@
+[project]
+name = "garden-guard"
+version = "0.1.0"
+description = "A calm turn-based garden tactics game for kids."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false

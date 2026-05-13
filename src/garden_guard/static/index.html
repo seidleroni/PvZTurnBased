@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Garden Guard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-panel" aria-label="Garden Guard game">
+        <div class="top-bar">
+          <div>
+            <h1>Garden Guard</h1>
+            <p id="levelText">Backyard training</p>
+          </div>
+          <div class="stats">
+            <span id="turnBadge">Turn 1</span>
+            <span id="seedBadge">Seeds 7</span>
+            <span id="gateBadge">Gate 0/3</span>
+            <span id="goalBadge">Goal: Guard the gate</span>
+          </div>
+        </div>
+
+        <div id="message" class="message" role="status"></div>
+
+        <div class="play-area">
+          <aside class="toolbox" aria-label="Defender choices">
+            <div class="help-card">
+              <h2>How To Win</h2>
+              <ol>
+                <li>Bad guys start on the blue right edge.</li>
+                <li>They move left one square after you press End Turn.</li>
+                <li>If a helper blocks them, they attack instead.</li>
+                <li>Stop every wave before the gate gets hit 3 times.</li>
+              </ol>
+            </div>
+            <h2>Defenders</h2>
+            <div id="unitCards" class="unit-cards"></div>
+            <div class="buttons">
+              <button id="undoBtn" type="button" title="Undo last placement">Undo</button>
+              <button id="hintBtn" type="button" title="Show a calm hint">Hint</button>
+              <button id="restartBtn" type="button" title="Restart this level">Restart</button>
+            </div>
+          </aside>
+
+          <section class="board-wrap">
+            <div id="board" class="board" aria-label="Game board"></div>
+            <div id="enemyPlan" class="enemy-plan" aria-label="Enemy movement preview"></div>
+            <button id="nextTurnBtn" class="next-turn" type="button">End Turn</button>
+          </section>
+
+          <aside class="codex" aria-label="Telemetry and balance notes">
+            <h2>Balance</h2>
+            <div id="telemetrySummary" class="telemetry-summary">No plays yet.</div>
+            <div id="eventList" class="event-list"></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
