@@ -32,6 +32,22 @@ Your goal is to stop every wave before the garden gate is hit 3 times.
 uv run python -m unittest discover -s tests
 ```
 
+## GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`, which deploys the browser game from `src/garden_guard/static/` whenever `main` is pushed.
+
+Required GitHub repository setting:
+
+1. Open `Settings` -> `Pages`.
+2. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+3. Save the setting, then push to `main` or run the `Deploy GitHub Pages` workflow manually.
+
+The published game URL should be:
+
+`https://seidleroni.github.io/PvZTurnBased/`
+
+GitHub Pages is static hosting, so gameplay works there but local telemetry does not write to `data/telemetry.jsonl`. Use `uv run python main.py` locally when you want telemetry collection.
+
 ## Telemetry
 
 Gameplay telemetry is local only and is written to `data/telemetry.jsonl`. The in-game Balance panel reads the same data through `/api/telemetry/summary` and shows recent level starts, wins, losses, hints, undo usage, upgrades, removals, powers, and turn results.
