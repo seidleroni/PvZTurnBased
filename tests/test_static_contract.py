@@ -17,8 +17,12 @@ class StaticContractTests(unittest.TestCase):
         game = (STATIC / "game.js").read_text(encoding="utf-8")
         self.assertIn("Training Patch", game)
         self.assertIn("Sprinkler Hill", game)
+        self.assertIn("Bucket Bridge", game)
+        self.assertIn("Moonlit Maze", game)
         for unit in ["Pea Cadet", "Sun Medic", "Tater Bunker", "Sprout Tank"]:
             self.assertIn(unit, game)
+        for enemy in ["Fast Sneaker", "Shield Bucket", "Grumpy Stomper"]:
+            self.assertIn(enemy, game)
 
     def test_css_uses_responsive_board(self):
         css = (STATIC / "styles.css").read_text(encoding="utf-8")
@@ -40,6 +44,19 @@ class StaticContractTests(unittest.TestCase):
         self.assertIn("AudioContext", game)
         self.assertIn("playSound", game)
         self.assertIn("gardenGuardSound", game)
+
+    def test_upgrades_removal_and_powers_are_available(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        game = (STATIC / "game.js").read_text(encoding="utf-8")
+        for element_id in ["upgradePanel", "shovelBtn", "rallyBtn", "sprinklerBtn", "starBadge"]:
+            self.assertIn(element_id, html)
+        for behavior in ["UPGRADES", "upgradeDefender", "removeDefender", "useRallyShot", "useSprinkler"]:
+            self.assertIn(behavior, game)
+
+    def test_referenced_svg_assets_exist(self):
+        game = (STATIC / "game.js").read_text(encoding="utf-8")
+        for asset in re.findall(r"assets/[a-z-]+\\.svg", game):
+            self.assertTrue((STATIC / asset).exists(), asset)
 
 
 if __name__ == "__main__":

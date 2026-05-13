@@ -40,6 +40,17 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(summary["levels"]["training-patch"]["wins"], 1)
         self.assertEqual(summary["levels"]["training-patch"]["averageTurns"], 4.0)
 
+    def test_new_gameplay_events_are_valid(self):
+        for event_type in ["unit_upgraded", "unit_removed", "power_used"]:
+            event = validate_event(
+                {
+                    "type": event_type,
+                    "session_id": "test-session",
+                    "payload": {"levelId": "training-patch"},
+                }
+            )
+            self.assertEqual(event["type"], event_type)
+
 
 if __name__ == "__main__":
     unittest.main()

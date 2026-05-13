@@ -4,6 +4,7 @@ const LEVELS = [
     name: "Training Patch",
     goal: "Clear all 4 waves",
     seeds: 7,
+    stars: 1,
     width: 5,
     height: 5,
     spawns: [1, 3],
@@ -20,6 +21,7 @@ const LEVELS = [
     name: "Sprinkler Hill",
     goal: "Clear all 4 waves",
     seeds: 9,
+    stars: 2,
     width: 5,
     height: 5,
     spawns: [0, 2, 4],
@@ -29,6 +31,42 @@ const LEVELS = [
       [{ row: 0, type: "bucket" }, { row: 4, type: "sock" }],
       [{ row: 2, type: "windup" }, { row: 4, type: "sock" }],
       [{ row: 0, type: "bucket" }, { row: 2, type: "windup" }],
+    ],
+  },
+  {
+    id: "bucket-bridge",
+    name: "Bucket Bridge",
+    goal: "Break armored buckets",
+    seeds: 10,
+    stars: 3,
+    width: 5,
+    height: 5,
+    spawns: [1, 2, 3],
+    gates: [1, 2, 3],
+    waves: [
+      [{ row: 2, type: "shield" }],
+      [{ row: 1, type: "sock" }, { row: 3, type: "shield" }],
+      [{ row: 2, type: "stomper" }, { row: 3, type: "bucket" }],
+      [{ row: 1, type: "shield" }, { row: 2, type: "stomper" }, { row: 3, type: "sneaker" }],
+      [{ row: 1, type: "bucket" }, { row: 2, type: "shield" }, { row: 3, type: "stomper" }],
+    ],
+  },
+  {
+    id: "moonlit-maze",
+    name: "Moonlit Maze",
+    goal: "Hold every garden lane",
+    seeds: 11,
+    stars: 4,
+    width: 5,
+    height: 5,
+    spawns: [0, 1, 2, 3, 4],
+    gates: [0, 1, 2, 3, 4],
+    waves: [
+      [{ row: 0, type: "sneaker" }, { row: 4, type: "sock" }],
+      [{ row: 1, type: "bucket" }, { row: 3, type: "sneaker" }],
+      [{ row: 0, type: "shield" }, { row: 2, type: "windup" }, { row: 4, type: "shield" }],
+      [{ row: 1, type: "stomper" }, { row: 2, type: "sneaker" }, { row: 3, type: "bucket" }],
+      [{ row: 0, type: "shield" }, { row: 1, type: "stomper" }, { row: 3, type: "stomper" }, { row: 4, type: "sneaker" }],
     ],
   },
 ];
@@ -76,6 +114,60 @@ const ENEMIES = {
   sock: { name: "Sock Zombie", icon: "assets/sock-zombie.svg", hp: 2, damage: 1, speed: 1 },
   bucket: { name: "Bucket Bot", icon: "assets/bucket-bot.svg", hp: 4, damage: 1, speed: 1 },
   windup: { name: "Wind-Up Raider", icon: "assets/windup-raider.svg", hp: 3, damage: 2, speed: 1 },
+  sneaker: { name: "Fast Sneaker", icon: "assets/fast-sneaker.svg", hp: 2, damage: 1, speed: 2 },
+  shield: { name: "Shield Bucket", icon: "assets/shield-bucket.svg", hp: 5, damage: 1, speed: 1, armor: 1 },
+  stomper: { name: "Grumpy Stomper", icon: "assets/grumpy-stomper.svg", hp: 6, damage: 2, speed: 1 },
+};
+
+const UPGRADES = {
+  pea_double: {
+    unit: "pea",
+    name: "Double Pea",
+    cost: 2,
+    text: "Shoots twice each turn.",
+  },
+  pea_longshot: {
+    unit: "pea",
+    name: "Longshot",
+    cost: 1,
+    text: "Shoots 2 squares farther.",
+  },
+  bunker_thick: {
+    unit: "bunker",
+    name: "Thick Tater",
+    cost: 2,
+    text: "Gains 4 max health.",
+  },
+  bunker_spiky: {
+    unit: "bunker",
+    name: "Spiky Tater",
+    cost: 2,
+    text: "Hurts attackers back.",
+  },
+  medic_bigger: {
+    unit: "medic",
+    name: "Bigger Heal",
+    cost: 2,
+    text: "Heals 2 health.",
+  },
+  medic_team: {
+    unit: "medic",
+    name: "Team Glow",
+    cost: 3,
+    text: "Heals all nearby helpers.",
+  },
+  tank_heavy: {
+    unit: "tank",
+    name: "Heavy Shell",
+    cost: 2,
+    text: "Adds 1 damage.",
+  },
+  tank_splash: {
+    unit: "tank",
+    name: "Splash Shell",
+    cost: 3,
+    text: "Chips a second enemy.",
+  },
 };
 
 const state = {
@@ -84,6 +176,7 @@ const state = {
   selectedUnit: "pea",
   turn: 1,
   seeds: 0,
+  stars: 0,
   defenders: [],
   enemies: [],
   placements: [],
@@ -92,6 +185,8 @@ const state = {
   damageToGate: 0,
   gameOver: false,
   resolving: false,
+  selectedDefenderId: null,
+  shovelMode: false,
 };
 
 const audio = {
@@ -104,17 +199,22 @@ const unitCards = document.querySelector("#unitCards");
 const message = document.querySelector("#message");
 const turnBadge = document.querySelector("#turnBadge");
 const seedBadge = document.querySelector("#seedBadge");
+const starBadge = document.querySelector("#starBadge");
 const gateBadge = document.querySelector("#gateBadge");
 const goalBadge = document.querySelector("#goalBadge");
 const levelText = document.querySelector("#levelText");
 const nextTurnBtn = document.querySelector("#nextTurnBtn");
 const soundBtn = document.querySelector("#soundBtn");
+const shovelBtn = document.querySelector("#shovelBtn");
+const rallyBtn = document.querySelector("#rallyBtn");
+const sprinklerBtn = document.querySelector("#sprinklerBtn");
 const undoBtn = document.querySelector("#undoBtn");
 const hintBtn = document.querySelector("#hintBtn");
 const restartBtn = document.querySelector("#restartBtn");
 const telemetrySummary = document.querySelector("#telemetrySummary");
 const eventList = document.querySelector("#eventList");
 const enemyPlan = document.querySelector("#enemyPlan");
+const upgradePanel = document.querySelector("#upgradePanel");
 
 function level() {
   return LEVELS[state.levelIndex];
@@ -125,6 +225,7 @@ function beginLevel(index = 0) {
   state.levelIndex = index;
   state.turn = 1;
   state.seeds = chosen.seeds;
+  state.stars = chosen.stars;
   state.defenders = [];
   state.enemies = [];
   state.placements = [];
@@ -133,6 +234,8 @@ function beginLevel(index = 0) {
   state.damageToGate = 0;
   state.gameOver = false;
   state.selectedUnit = "pea";
+  state.selectedDefenderId = null;
+  state.shovelMode = false;
   spawnWave();
   track("level_start", { levelId: chosen.id });
   showMessage("Mission: stop every wave. Bad guys are on the blue right edge and move left after End Turn.");
@@ -156,7 +259,9 @@ function refreshTelemetry() {
       telemetrySummary.textContent =
         `${summary.eventCount} events. ` +
         `${summary.byType.level_complete || 0} wins, ` +
-        `${summary.byType.level_failed || 0} losses.`;
+        `${summary.byType.level_failed || 0} losses. ` +
+        `${summary.byType.unit_upgraded || 0} upgrades, ` +
+        `${summary.byType.power_used || 0} powers.`;
       eventList.innerHTML = "";
       summary.recent
         .slice()
@@ -183,16 +288,23 @@ function render() {
   levelText.textContent = chosen.name;
   turnBadge.textContent = `Turn ${state.turn}`;
   seedBadge.textContent = `Seeds ${state.seeds}`;
+  starBadge.textContent = `Stars ${state.stars}`;
   gateBadge.textContent = `Gate hits ${state.damageToGate}/3`;
   goalBadge.textContent = `${chosen.goal} | Wave ${Math.min(state.waveIndex, chosen.waves.length)}/${chosen.waves.length}`;
+  renderUpgradePanel();
   renderEnemyPlan();
   undoBtn.disabled = state.resolving || state.placements.length === 0 || state.gameOver;
   hintBtn.disabled = state.resolving || state.gameOver;
   restartBtn.disabled = state.resolving;
+  shovelBtn.disabled = state.resolving || state.gameOver;
+  rallyBtn.disabled = state.resolving || state.gameOver || state.stars < 3 || !state.enemies.length;
+  sprinklerBtn.disabled = state.resolving || state.gameOver || state.stars < 2 || !state.enemies.length;
   nextTurnBtn.disabled = state.resolving || state.gameOver;
   nextTurnBtn.textContent = state.resolving ? "Resolving..." : state.gameOver ? "Level Done" : "End Turn";
   soundBtn.textContent = audio.enabled ? "Sound On" : "Sound Off";
   soundBtn.classList.toggle("muted", !audio.enabled);
+  shovelBtn.textContent = state.shovelMode ? "Shovel On" : "Shovel Off";
+  shovelBtn.classList.toggle("selected-tool", state.shovelMode);
 }
 
 function renderCards() {
@@ -211,6 +323,8 @@ function renderCards() {
     card.addEventListener("click", () => {
       playSound("select");
       state.selectedUnit = key;
+      state.selectedDefenderId = null;
+      state.shovelMode = false;
       showMessage(`${unit.name} selected. Choose an empty garden square.`);
       render();
     });
@@ -250,6 +364,9 @@ function renderBoard() {
       if (!defender && !enemy && col < chosen.width - 1) {
         cell.classList.add("placeable");
       }
+      if (defender && defender.id === state.selectedDefenderId) {
+        cell.classList.add("selected-cell");
+      }
       cell.addEventListener("click", () => placeDefender(row, col));
       if (defender) cell.appendChild(piece(defender, "defender"));
       if (enemy) cell.appendChild(piece(enemy, "enemy"));
@@ -268,12 +385,10 @@ function boardLabel(chosen, row, col) {
 function enemyIntentAt(row, col) {
   const enemy = state.enemies.find((item) => item.row === row && item.col === col);
   if (!enemy) return "";
-  const blocker = state.defenders.find(
-    (defender) => defender.row === enemy.row && defender.col === enemy.col - 1,
-  );
+  const blocker = pathBlocker(enemy);
   if (blocker) return "ATTACK";
   if (enemy.col === 0) return "GATE!";
-  return "<- MOVE";
+  return ENEMIES[enemy.type].speed > 1 ? "<- MOVE 2" : "<- MOVE";
 }
 
 function renderEnemyPlan() {
@@ -290,18 +405,63 @@ function renderEnemyPlan() {
   enemyPlan.innerHTML = `<strong>Bad Guys Next Move</strong><p>${plans.join(" ")}</p>`;
 }
 
+function renderUpgradePanel() {
+  const defender = state.defenders.find((item) => item.id === state.selectedDefenderId);
+  if (!defender) {
+    upgradePanel.innerHTML =
+      "<strong>Helper Upgrades</strong><p>Click one of your helpers to upgrade it, or turn on Shovel to remove it.</p>";
+    return;
+  }
+  const unit = UNITS[defender.type];
+  const upgrades = Object.entries(UPGRADES).filter(
+    ([key, upgrade]) => upgrade.unit === defender.type && !defender.upgrades.includes(key),
+  );
+  const owned = defender.upgrades.length
+    ? defender.upgrades.map((key) => UPGRADES[key].name).join(", ")
+    : "No upgrades yet";
+  const buttons = upgrades
+    .map(
+      ([key, upgrade]) =>
+        `<button type="button" class="upgrade-btn" data-upgrade="${key}" ${
+          state.resolving || state.gameOver || state.stars < upgrade.cost ? "disabled" : ""
+        }>${upgrade.name}<span>${upgrade.cost} stars | ${upgrade.text}</span></button>`,
+    )
+    .join("");
+  upgradePanel.innerHTML = `
+    <strong>${unit.name} Lv ${1 + defender.upgrades.length}</strong>
+    <p>Health ${defender.hp}/${maxHp(defender)}. ${owned}.</p>
+    <div class="upgrade-actions">
+      ${buttons || "<p>This helper has every upgrade.</p>"}
+      <button type="button" class="remove-btn" data-remove="${defender.id}" ${
+        state.resolving || state.gameOver ? "disabled" : ""
+      }>Remove for 1 seed</button>
+    </div>`;
+  upgradePanel.querySelectorAll("[data-upgrade]").forEach((button) => {
+    button.addEventListener("click", () => upgradeDefender(defender.id, button.dataset.upgrade));
+  });
+  const removeButton = upgradePanel.querySelector("[data-remove]");
+  if (removeButton) removeButton.addEventListener("click", () => removeDefender(defender.id));
+}
+
 function describeEnemyIntent(enemy) {
   const name = ENEMIES[enemy.type].name;
-  const blocker = state.defenders.find(
-    (defender) => defender.row === enemy.row && defender.col === enemy.col - 1,
-  );
+  const blocker = pathBlocker(enemy);
   if (blocker) {
     return `${name} in row ${enemy.row + 1} will attack the blocker.`;
   }
   if (enemy.col === 0) {
     return `${name} in row ${enemy.row + 1} will hit the gate.`;
   }
-  return `${name} in row ${enemy.row + 1} will move left.`;
+  const speed = ENEMIES[enemy.type].speed;
+  return `${name} in row ${enemy.row + 1} will move left${speed > 1 ? " 2 squares" : ""}.`;
+}
+
+function pathBlocker(enemy) {
+  const speed = ENEMIES[enemy.type].speed;
+  return state.defenders
+    .filter((defender) => defender.row === enemy.row)
+    .filter((defender) => defender.col < enemy.col && enemy.col - defender.col <= speed)
+    .sort((a, b) => b.col - a.col)[0];
 }
 
 function piece(item, side) {
@@ -309,25 +469,71 @@ function piece(item, side) {
   wrap.className = `piece ${side}`;
   wrap.dataset.pieceId = item.id;
   const catalog = side === "enemy" ? ENEMIES[item.type] : UNITS[item.type];
-  wrap.innerHTML = `<img src="${catalog.icon}" alt="" /><span class="hp">${item.hp}</span>`;
+  const levelBadge =
+    side === "defender" && item.upgrades.length
+      ? `<span class="level-badge">Lv ${1 + item.upgrades.length}</span>`
+      : "";
+  wrap.innerHTML = `<img src="${catalog.icon}" alt="" /><span class="hp">${item.hp}</span>${levelBadge}`;
   wrap.title = `${catalog.name}, ${item.hp} health`;
   return wrap;
+}
+
+function hasUpgrade(defender, upgradeKey) {
+  if (!defender.upgrades) defender.upgrades = [];
+  return defender.upgrades.includes(upgradeKey);
+}
+
+function maxHp(defender) {
+  const bonus = hasUpgrade(defender, "bunker_thick") ? 4 : 0;
+  return UNITS[defender.type].hp + bonus;
+}
+
+function shotDamage(defender) {
+  const unit = UNITS[defender.type];
+  const bonus = hasUpgrade(defender, "tank_heavy") ? 1 : 0;
+  return unit.damage + bonus;
+}
+
+function shotRange(defender) {
+  const unit = UNITS[defender.type];
+  const bonus = hasUpgrade(defender, "pea_longshot") ? 2 : 0;
+  return unit.range + bonus;
+}
+
+function shotCount(defender) {
+  return hasUpgrade(defender, "pea_double") ? 2 : 1;
+}
+
+function healAmount(medic) {
+  return hasUpgrade(medic, "medic_bigger") ? 2 : 1;
+}
+
+function applyDamage(enemy, amount) {
+  const armor = ENEMIES[enemy.type].armor || 0;
+  const actual = Math.max(1, amount - armor);
+  enemy.hp -= actual;
+  return actual;
 }
 
 function placeDefender(row, col) {
   if (state.resolving || state.gameOver) return;
   const chosen = level();
   const unit = UNITS[state.selectedUnit];
+  const existingDefender = state.defenders.find((item) => item.row === row && item.col === col);
+  if (existingDefender) {
+    if (state.shovelMode) {
+      removeDefender(existingDefender.id);
+      return;
+    }
+    selectDefender(existingDefender.id);
+    return;
+  }
   if (col === chosen.width - 1) {
     showMessage("That blue edge is where raiders arrive. Plant closer to the gate.");
     return;
   }
   if (state.seeds < unit.cost) {
     showMessage(`Need ${unit.cost} seeds for ${unit.name}.`);
-    return;
-  }
-  if (state.defenders.some((item) => item.row === row && item.col === col)) {
-    showMessage("That square already has a helper.");
     return;
   }
   if (state.enemies.some((item) => item.row === row && item.col === col)) {
@@ -340,13 +546,69 @@ function placeDefender(row, col) {
     row,
     col,
     hp: unit.hp,
+    upgrades: [],
   };
   state.defenders.push(defender);
+  state.selectedDefenderId = defender.id;
   state.placements.push(defender.id);
   state.seeds -= unit.cost;
   playSound("place");
   track("unit_placed", { levelId: chosen.id, unit: state.selectedUnit, row, col });
   showMessage(`${unit.name} is ready. End the turn when you are comfortable.`);
+  render();
+}
+
+function selectDefender(id) {
+  state.selectedDefenderId = id;
+  state.shovelMode = false;
+  const defender = state.defenders.find((item) => item.id === id);
+  playSound("select");
+  showMessage(`${UNITS[defender.type].name} selected. Choose an upgrade or remove it.`);
+  render();
+}
+
+function upgradeDefender(id, upgradeKey) {
+  if (state.resolving || state.gameOver) return;
+  const defender = state.defenders.find((item) => item.id === id);
+  const upgrade = UPGRADES[upgradeKey];
+  if (!defender || !upgrade || upgrade.unit !== defender.type) return;
+  if (defender.upgrades.includes(upgradeKey)) return;
+  if (state.stars < upgrade.cost) {
+    showMessage(`Need ${upgrade.cost} stars for ${upgrade.name}.`);
+    return;
+  }
+  state.stars -= upgrade.cost;
+  defender.upgrades.push(upgradeKey);
+  if (upgradeKey === "bunker_thick") defender.hp += 4;
+  defender.hp = Math.min(maxHp(defender), defender.hp);
+  playSound("upgrade");
+  track("unit_upgraded", {
+    levelId: level().id,
+    unit: defender.type,
+    upgrade: upgradeKey,
+    turn: state.turn,
+  });
+  showMessage(`${UNITS[defender.type].name} learned ${upgrade.name}.`);
+  render();
+}
+
+function removeDefender(id) {
+  if (state.resolving || state.gameOver) return;
+  const index = state.defenders.findIndex((item) => item.id === id);
+  if (index === -1) return;
+  const [removed] = state.defenders.splice(index, 1);
+  state.placements = state.placements.filter((placementId) => placementId !== id);
+  state.seeds += 1;
+  state.selectedDefenderId = null;
+  state.shovelMode = false;
+  playSound("remove");
+  track("unit_removed", {
+    levelId: level().id,
+    unit: removed.type,
+    upgrades: removed.upgrades.length,
+    turn: state.turn,
+  });
+  showMessage(`${UNITS[removed.type].name} removed. You got 1 seed back.`);
   render();
 }
 
@@ -357,6 +619,7 @@ function undoPlacement() {
   if (index === -1) return;
   const [removed] = state.defenders.splice(index, 1);
   state.seeds += UNITS[removed.type].cost;
+  if (state.selectedDefenderId === removed.id) state.selectedDefenderId = null;
   playSound("undo");
   track("undo_used", { levelId: level().id, unit: removed.type });
   showMessage("Last placement undone. Try another idea.");
@@ -391,6 +654,7 @@ async function endTurn() {
   state.placements = [];
   render();
   showMessage("Resolving turn: helpers act first, then bad guys move.");
+  const gateDamageBeforeTurn = state.damageToGate;
   await sleep(250);
   await defendersActAnimated();
   removeDefeatedEnemies();
@@ -408,14 +672,17 @@ async function endTurn() {
     enemies: state.enemies.length,
     stopped: state.stopped,
     gateDamage: state.damageToGate,
+    seeds: state.seeds,
+    stars: state.stars,
   });
   state.resolving = false;
   if (!checkOutcome()) {
     state.turn += 1;
     state.seeds += 2;
+    state.stars += state.damageToGate === gateDamageBeforeTurn ? 2 : 1;
     state.placements = [];
     spawnWave();
-    showMessage("Turn complete. Bad guys moved left or attacked. You earned 2 seeds.");
+    showMessage("Turn complete. You earned 2 seeds and planning stars for upgrades.");
   }
   render();
 }
@@ -442,17 +709,29 @@ async function defendersActAnimated() {
   let acted = false;
   for (const defender of state.defenders) {
     const unit = UNITS[defender.type];
-    if (!unit.damage) continue;
-    const targets = state.enemies
-      .filter((enemy) => enemy.hp > 0 && enemy.row === defender.row && enemy.col > defender.col)
-      .filter((enemy) => enemy.col - defender.col <= unit.range)
-      .sort((a, b) => a.col - b.col);
-    if (targets[0]) {
+    const damage = shotDamage(defender);
+    if (!damage) continue;
+    for (let shot = 0; shot < shotCount(defender); shot += 1) {
+      const targets = state.enemies
+        .filter((enemy) => enemy.hp > 0 && enemy.row === defender.row && enemy.col > defender.col)
+        .filter((enemy) => enemy.col - defender.col <= shotRange(defender))
+        .sort((a, b) => a.col - b.col);
+      if (!targets[0]) continue;
       acted = true;
       showMessage(`${unit.name} shoots ${ENEMIES[targets[0].type].name}!`);
       playSound(unit.type === "tank" ? "tankShot" : "shot");
-      await animateShot(defender, targets[0], unit.damage);
-      targets[0].hp -= unit.damage;
+      const actual = Math.max(1, damage - (ENEMIES[targets[0].type].armor || 0));
+      await animateShot(defender, targets[0], actual);
+      applyDamage(targets[0], damage);
+      if (hasUpgrade(defender, "tank_splash")) {
+        const splashTarget = state.enemies
+          .filter((enemy) => enemy.hp > 0 && enemy.row === defender.row && enemy.col > targets[0].col)
+          .sort((a, b) => a.col - b.col)[0];
+        if (splashTarget) {
+          await animateShot(targets[0], splashTarget, 1);
+          applyDamage(splashTarget, 1);
+        }
+      }
       render();
       await sleep(220);
     }
@@ -463,16 +742,17 @@ async function defendersActAnimated() {
 async function medicsHealAnimated() {
   let healed = false;
   for (const medic of state.defenders.filter((defender) => defender.type === "medic")) {
-    const friend = state.defenders.find((defender) => {
+    const friends = state.defenders.filter((defender) => {
       const near = Math.abs(defender.row - medic.row) + Math.abs(defender.col - medic.col);
-      return defender.id !== medic.id && near <= 1 && defender.hp < UNITS[defender.type].hp;
+      return defender.id !== medic.id && near <= 1 && defender.hp < maxHp(defender);
     });
-    if (friend) {
+    const targets = hasUpgrade(medic, "medic_team") ? friends : friends.slice(0, 1);
+    for (const friend of targets) {
       healed = true;
       showMessage("Sun Medic heals a helper.");
       playSound("heal");
       await animateHeal(medic, friend);
-      friend.hp += 1;
+      friend.hp = Math.min(maxHp(friend), friend.hp + healAmount(medic));
       render();
       await sleep(220);
     }
@@ -484,14 +764,16 @@ async function enemiesActAnimated() {
   for (const enemy of state.enemies.slice().sort((a, b) => a.col - b.col)) {
     if (enemy.hp <= 0 || enemy.escaped) continue;
     const type = ENEMIES[enemy.type];
-    const blocker = state.defenders.find(
-      (defender) => defender.row === enemy.row && defender.col === enemy.col - 1,
-    );
+    const blocker = pathBlocker(enemy);
     if (blocker) {
       showMessage(`${type.name} attacks the blocker instead of moving.`);
       playSound("attack");
       await animateAttack(enemy, blocker);
       blocker.hp -= type.damage;
+      if (hasUpgrade(blocker, "bunker_spiky")) {
+        applyDamage(enemy, 1);
+        playSound("shot");
+      }
       render();
       await sleep(240);
       continue;
@@ -521,6 +803,9 @@ function cleanupAfterEnemies() {
   removeDefeatedEnemies();
   state.enemies = state.enemies.filter((enemy) => !enemy.escaped);
   state.defenders = state.defenders.filter((defender) => defender.hp > 0);
+  if (!state.defenders.some((defender) => defender.id === state.selectedDefenderId)) {
+    state.selectedDefenderId = null;
+  }
 }
 
 function sleep(ms) {
@@ -623,6 +908,14 @@ function animateMove(enemy, from, to) {
   });
 }
 
+function animateSprinkler() {
+  const wave = document.createElement("div");
+  wave.className = "sprinkler-wave";
+  wave.textContent = "SPLASH";
+  board.appendChild(wave);
+  return sleep(620).then(() => wave.remove());
+}
+
 function checkOutcome() {
   const chosen = level();
   if (state.damageToGate >= 3) {
@@ -661,6 +954,50 @@ function toggleSound() {
   render();
 }
 
+function toggleShovel() {
+  if (state.resolving || state.gameOver) return;
+  state.shovelMode = !state.shovelMode;
+  state.selectedDefenderId = null;
+  playSound("select");
+  showMessage(state.shovelMode ? "Shovel on. Click a helper to remove it for 1 seed." : "Shovel off.");
+  render();
+}
+
+async function useRallyShot() {
+  if (state.resolving || state.gameOver || state.stars < 3 || !state.enemies.length) return;
+  state.stars -= 3;
+  state.resolving = true;
+  render();
+  playSound("rally");
+  showMessage("Rally Shot! Every shooter fires right now.");
+  track("power_used", { levelId: level().id, power: "rally_shot", turn: state.turn });
+  await sleep(200);
+  await defendersActAnimated();
+  removeDefeatedEnemies();
+  state.resolving = false;
+  render();
+  showMessage("Rally complete. Keep planning or end the turn.");
+}
+
+async function useSprinkler() {
+  if (state.resolving || state.gameOver || state.stars < 2 || !state.enemies.length) return;
+  state.stars -= 2;
+  state.resolving = true;
+  render();
+  playSound("sprinkler");
+  showMessage("Sprinkler blast! Bad guys take 1 damage and slide right.");
+  track("power_used", { levelId: level().id, power: "sprinkler", turn: state.turn });
+  await animateSprinkler();
+  const chosen = level();
+  state.enemies.forEach((enemy) => {
+    applyDamage(enemy, 1);
+    if (enemy.col < chosen.width - 1) enemy.col += 1;
+  });
+  removeDefeatedEnemies();
+  state.resolving = false;
+  render();
+}
+
 function ensureAudio() {
   if (!audio.enabled) return null;
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -683,6 +1020,10 @@ function playSound(name) {
     shot: [[740, 0, 0.08, "square", 0.035], [560, 0.05, 0.07, "square", 0.025]],
     tankShot: [[190, 0, 0.1, "sawtooth", 0.045], [120, 0.08, 0.08, "sawtooth", 0.035]],
     heal: [[523, 0, 0.09, "sine", 0.035], [659, 0.08, 0.09, "sine", 0.03], [784, 0.16, 0.11, "sine", 0.025]],
+    upgrade: [[392, 0, 0.08, "triangle", 0.035], [587, 0.07, 0.1, "triangle", 0.035], [784, 0.15, 0.12, "triangle", 0.03]],
+    remove: [[240, 0, 0.08, "triangle", 0.035], [180, 0.08, 0.08, "triangle", 0.03]],
+    rally: [[330, 0, 0.07, "square", 0.03], [440, 0.07, 0.07, "square", 0.03], [550, 0.14, 0.09, "square", 0.025]],
+    sprinkler: [[600, 0, 0.06, "sine", 0.025], [720, 0.06, 0.08, "sine", 0.025], [840, 0.14, 0.1, "sine", 0.02]],
     attack: [[150, 0, 0.1, "sawtooth", 0.04], [95, 0.08, 0.12, "sawtooth", 0.035]],
     move: [[210, 0, 0.07, "triangle", 0.025], [180, 0.07, 0.07, "triangle", 0.02]],
     gate: [[90, 0, 0.18, "sawtooth", 0.045]],
@@ -712,6 +1053,9 @@ function playTone(context, start, frequency, duration, type, volume) {
 
 nextTurnBtn.addEventListener("click", endTurn);
 soundBtn.addEventListener("click", toggleSound);
+shovelBtn.addEventListener("click", toggleShovel);
+rallyBtn.addEventListener("click", useRallyShot);
+sprinklerBtn.addEventListener("click", useSprinkler);
 undoBtn.addEventListener("click", undoPlacement);
 hintBtn.addEventListener("click", hint);
 restartBtn.addEventListener("click", restart);
