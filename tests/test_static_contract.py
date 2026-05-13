@@ -33,6 +33,14 @@ class StaticContractTests(unittest.TestCase):
         for class_name in ["shot-beam", "heal-beam", "move-ghost", "damage-pop"]:
             self.assertIn(class_name, css)
 
+    def test_sound_effects_are_synthesized_locally(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        game = (STATIC / "game.js").read_text(encoding="utf-8")
+        self.assertIn("soundBtn", html)
+        self.assertIn("AudioContext", game)
+        self.assertIn("playSound", game)
+        self.assertIn("gardenGuardSound", game)
+
 
 if __name__ == "__main__":
     unittest.main()

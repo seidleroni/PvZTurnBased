@@ -94,6 +94,11 @@ const state = {
   resolving: false,
 };
 
+const audio = {
+  enabled: localStorage.getItem("gardenGuardSound") !== "off",
+  context: null,
+};
+
 const board = document.querySelector("#board");
 const unitCards = document.querySelector("#unitCards");
 const message = document.querySelector("#message");
@@ -103,6 +108,7 @@ const gateBadge = document.querySelector("#gateBadge");
 const goalBadge = document.querySelector("#goalBadge");
 const levelText = document.querySelector("#levelText");
 const nextTurnBtn = document.querySelector("#nextTurnBtn");
+const soundBtn = document.querySelector("#soundBtn");
 const undoBtn = document.querySelector("#undoBtn");
 const hintBtn = document.querySelector("#hintBtn");
 const restartBtn = document.querySelector("#restartBtn");
@@ -185,6 +191,8 @@ function render() {
   restartBtn.disabled = state.resolving;
   nextTurnBtn.disabled = state.resolving || state.gameOver;
   nextTurnBtn.textContent = state.resolving ? "Resolving..." : state.gameOver ? "Level Done" : "End Turn";
+  soundBtn.textContent = audio.enabled ? "Sound On" : "Sound Off";
+  soundBtn.classList.toggle("muted", !audio.enabled);
 }
 
 function renderCards() {
@@ -201,6 +209,7 @@ function renderCards() {
         <span class="unit-meta">${unit.cost} seed | ${unit.text}</span>
       </span>`;
     card.addEventListener("click", () => {
+      playSound("select");
       state.selectedUnit = key;
       showMessage(`${unit.name} selected. Choose an empty garden square.`);
       render();
@@ -335,6 +344,7 @@ function placeDefender(row, col) {
   state.defenders.push(defender);
   state.placements.push(defender.id);
   state.seeds -= unit.cost;
+  playSound("place");
   track("unit_placed", { levelId: chosen.id, unit: state.selectedUnit, row, col });
   showMessage(`${unit.name} is ready. End the turn when you are comfortable.`);
   render();
@@ -347,6 +357,7 @@ function undoPlacement() {
   if (index === -1) return;
   const [removed] = state.defenders.splice(index, 1);
   state.seeds += UNITS[removed.type].cost;
+  playSound("undo");
   track("undo_used", { levelId: level().id, unit: removed.type });
   showMessage("Last placement undone. Try another idea.");
   render();
@@ -354,6 +365,7 @@ function undoPlacement() {
 
 function hint() {
   if (state.resolving || state.gameOver) return;
+  playSound("hint");
   const danger = state.enemies.find(
     (enemy) =>
       enemy.col <= 2 &&
@@ -374,6 +386,7 @@ function hint() {
 
 async function endTurn() {
   if (state.resolving || state.gameOver) return;
+  playSound("turn");
   state.resolving = true;
   state.placements = [];
   render();
@@ -437,6 +450,7 @@ async function defendersActAnimated() {
     if (targets[0]) {
       acted = true;
       showMessage(`${unit.name} shoots ${ENEMIES[targets[0].type].name}!`);
+      playSound(unit.type === "tank" ? "tankShot" : "shot");
       await animateShot(defender, targets[0], unit.damage);
       targets[0].hp -= unit.damage;
       render();
@@ -456,6 +470,7 @@ async function medicsHealAnimated() {
     if (friend) {
       healed = true;
       showMessage("Sun Medic heals a helper.");
+      playSound("heal");
       await animateHeal(medic, friend);
       friend.hp += 1;
       render();
@@ -474,6 +489,7 @@ async function enemiesActAnimated() {
     );
     if (blocker) {
       showMessage(`${type.name} attacks the blocker instead of moving.`);
+      playSound("attack");
       await animateAttack(enemy, blocker);
       blocker.hp -= type.damage;
       render();
@@ -483,6 +499,7 @@ async function enemiesActAnimated() {
     const from = { row: enemy.row, col: enemy.col };
     const to = { row: enemy.row, col: enemy.col - type.speed };
     showMessage(to.col < 0 ? `${type.name} reaches the gate!` : `${type.name} moves left.`);
+    playSound(to.col < 0 ? "gate" : "move");
     await animateMove(enemy, from, to);
     enemy.col = to.col;
     if (enemy.col < 0) {
@@ -611,6 +628,7 @@ function checkOutcome() {
   if (state.damageToGate >= 3) {
     state.gameOver = true;
     track("level_failed", { levelId: chosen.id, turns: state.turn, gateDamage: state.damageToGate });
+    playSound("loss");
     showMessage("The snack gate got bonked three times. Restart and try more blockers.");
     return true;
   }
@@ -618,6 +636,7 @@ function checkOutcome() {
   if (wavesDone && state.enemies.length === 0) {
     state.gameOver = true;
     track("level_complete", { levelId: chosen.id, turns: state.turn, stopped: state.stopped });
+    playSound("win");
     if (state.levelIndex < LEVELS.length - 1) {
       showMessage("Garden saved. Starting the next mission.");
       setTimeout(() => beginLevel(state.levelIndex + 1), 1200);
@@ -630,11 +649,69 @@ function checkOutcome() {
 }
 
 function restart() {
+  playSound("restart");
   track("restart_level", { levelId: level().id, turn: state.turn });
   beginLevel(state.levelIndex);
 }
 
+function toggleSound() {
+  audio.enabled = !audio.enabled;
+  localStorage.setItem("gardenGuardSound", audio.enabled ? "on" : "off");
+  if (audio.enabled) playSound("toggle");
+  render();
+}
+
+function ensureAudio() {
+  if (!audio.enabled) return null;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return null;
+  if (!audio.context) audio.context = new AudioContext();
+  if (audio.context.state === "suspended") audio.context.resume();
+  return audio.context;
+}
+
+function playSound(name) {
+  const context = ensureAudio();
+  if (!context) return;
+  const now = context.currentTime;
+  const patterns = {
+    select: [[440, 0, 0.06, "triangle", 0.035]],
+    place: [[330, 0, 0.08, "triangle", 0.045], [494, 0.07, 0.09, "triangle", 0.04]],
+    undo: [[360, 0, 0.06, "sine", 0.035], [260, 0.06, 0.08, "sine", 0.03]],
+    hint: [[660, 0, 0.07, "sine", 0.03], [880, 0.08, 0.08, "sine", 0.025]],
+    turn: [[220, 0, 0.08, "square", 0.025], [330, 0.08, 0.08, "square", 0.025]],
+    shot: [[740, 0, 0.08, "square", 0.035], [560, 0.05, 0.07, "square", 0.025]],
+    tankShot: [[190, 0, 0.1, "sawtooth", 0.045], [120, 0.08, 0.08, "sawtooth", 0.035]],
+    heal: [[523, 0, 0.09, "sine", 0.035], [659, 0.08, 0.09, "sine", 0.03], [784, 0.16, 0.11, "sine", 0.025]],
+    attack: [[150, 0, 0.1, "sawtooth", 0.04], [95, 0.08, 0.12, "sawtooth", 0.035]],
+    move: [[210, 0, 0.07, "triangle", 0.025], [180, 0.07, 0.07, "triangle", 0.02]],
+    gate: [[90, 0, 0.18, "sawtooth", 0.045]],
+    win: [[392, 0, 0.09, "triangle", 0.035], [523, 0.09, 0.1, "triangle", 0.035], [659, 0.18, 0.16, "triangle", 0.03]],
+    loss: [[220, 0, 0.12, "sine", 0.035], [165, 0.12, 0.14, "sine", 0.03], [110, 0.26, 0.2, "sine", 0.025]],
+    restart: [[260, 0, 0.06, "triangle", 0.03], [330, 0.07, 0.08, "triangle", 0.03]],
+    toggle: [[523, 0, 0.08, "sine", 0.035], [698, 0.08, 0.1, "sine", 0.03]],
+  };
+  (patterns[name] || patterns.select).forEach(([frequency, delay, duration, type, volume]) => {
+    playTone(context, now + delay, frequency, duration, type, volume);
+  });
+}
+
+function playTone(context, start, frequency, duration, type, volume) {
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.03);
+}
+
 nextTurnBtn.addEventListener("click", endTurn);
+soundBtn.addEventListener("click", toggleSound);
 undoBtn.addEventListener("click", undoPlacement);
 hintBtn.addEventListener("click", hint);
 restartBtn.addEventListener("click", restart);

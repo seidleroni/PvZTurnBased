@@ -47,6 +47,11 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.muted {
+  background: #f2f2f2;
+  color: #5b6470;
+}
+
 .app-shell {
   width: min(1280px, 100%);
   margin: 0 auto;

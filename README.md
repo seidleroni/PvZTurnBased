@@ -21,6 +21,7 @@ Your goal is to stop every wave before the garden gate is hit 3 times.
 - Pea Cadets and Sprout Tanks shoot down their row. Tater Bunkers block. Sun Medics heal nearby helpers.
 - The board shows each bad guy's next move: `MOVE`, `ATTACK`, or `GATE`.
 - After `End Turn`, animations show shots, healing, enemy attacks, and enemy movement in order.
+- The `Sound On` button toggles local synthesized sound effects. No audio files are downloaded.
 
 ## Test
 
