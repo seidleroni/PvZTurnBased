@@ -30,7 +30,10 @@ Your goal is to stop every wave before the garden gate is hit 3 times.
 
 ```powershell
 uv run python -m unittest discover -s tests
+node --check src/garden_guard/static/game.js
 ```
+
+The Python layout test uses Playwright to render the static game at standard laptop browser sizes and fails if key controls fall outside the viewport. Install the browser once with `uv run python -m playwright install chromium` if it is not already present.
 
 ## GitHub Pages
 
